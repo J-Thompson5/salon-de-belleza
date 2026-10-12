@@ -236,6 +236,8 @@
                     <div><label for="desc">Porcentaje de ganancia (0 a 100 %)</label><input id="desc"
                             inputmode="numeric" autocomplete="off" value="0"></div>
                 </div>
+                <label for="producto">Producto (opcional, se resta a la ganancia)</label>
+                <input id="producto" inputmode="decimal" autocomplete="off" placeholder="0">
                 <label for="estado">Estado</label>
                 <select id="estado"></select>
             </fieldset>
@@ -271,7 +273,7 @@
         for (let m = INICIO * 60; m < FIN * 60; m += 30) slots.push(m);
 
         let miembros = [], citas = [], dia = hoy(), editId = null, flash = null, modo = 'dia';
-        const gan = (v, p) => Math.round(v * p) / 100;
+        const gan = (v, p, pr = 0) => Math.round(v * p - pr * 100) / 100;
         const ETQ = { atendida: 'Atendida', cancelada: 'Cancelada' };
         function opcionesEstado(conBorrar) {
             const s = $('estado');
@@ -430,6 +432,7 @@
             $('servicio').value = c.servicio;
             $('valor').value = c.valor;
             $('desc').value = c.porcentaje;
+            $('producto').value = c.producto || '';
             $('estado').value = c.estado || 'pendiente';
             const bloq = c.estado === 'atendida';
             $('campos').disabled = bloq;
@@ -440,15 +443,27 @@
         }
 
         /* ---------- Valor y descuento ---------- */
+        function validarProducto() {
+            const v = parseFloat($('valor').value) || 0;
+            const p = parseInt($('desc').value, 10) || 0;
+            const pr = parseFloat($('producto').value) || 0;
+            const max = Math.floor(v * p + 1e-7) / 100; // valor x porcentaje de ganancia
+            const mal = pr > max + 1e-9;
+            const txt = mal ? 'El producto no puede ser mayor que la ganancia (' + fmt(max) + ').' : '';
+            $('producto').setCustomValidity(txt);
+            $('pmsg').textContent = txt;
+            return !mal;
+        }
         function calcTotal() {
+            validarProducto();
             const e = $('estado').value;
             const v = parseFloat($('valor').value) || 0;
             const p = parseInt($('desc').value, 10) || 0;
-            $('total').textContent = e === 'atendida' ? fmt(gan(v, p)) : '—';
+            $('total').textContent = e === 'atendida' ? fmt(gan(v, p, parseFloat($('producto').value) || 0)) : '—';
             $('guardar').textContent = e === 'borrar' ? 'Borrar cita' : 'Guardar cita';
         }
         $('estado').onchange = calcTotal;
-        $('valor').oninput = e => {
+        $('valor').oninput = $('producto').oninput = e => {
             let v = e.target.value.replace(',', '.').replace(/[^\d.]/g, '');
             const p = v.split('.');
             if (p.length > 2) v = p[0] + '.' + p.slice(1).join('');
@@ -474,18 +489,20 @@
                 cargarCitas();
                 return;
             }
+            if (!validarProducto()) return;
             if (est === 'atendida' && !confirm('Al marcarla como atendida ya no podrás editarla ni borrarla. ¿Continuar?')) return;
             const valor = parseFloat($('valor').value) || 0;
             const porcentaje = parseInt($('desc').value, 10) || 0;
+            const producto = parseFloat($('producto').value) || 0;
             const row = {
                 fecha: $('fecha').value,
                 hora: $('hora').value,
                 miembro_id: $('miembro').value || null,
                 clienta: $('clienta').value.trim(),
                 servicio: $('servicio').value.trim(),
-                valor, porcentaje,
+                valor, porcentaje, producto,
                 estado: est,
-                ganancia: est === 'atendida' ? gan(valor, porcentaje) : null
+                ganancia: est === 'atendida' ? gan(valor, porcentaje, producto) : null
             };
             const { error } = editId
                 ? await db.from('citas').update(row).eq('id', editId)
@@ -580,31 +597,31 @@
             if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Revisa tu conexión y recarga la página.'); return; }
             const wb = new ExcelJS.Workbook();
             const ws = wb.addWorksheet(modo === 'semana' ? 'Semana' : 'Día');
-            ws.columns = [{ width: 22 }, { width: 12 }, { width: 8 }, { width: 24 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 14 }];
+            ws.columns = [{ width: 22 }, { width: 12 }, { width: 8 }, { width: 24 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 14 }, { width: 14 }];
             ws.addRow([modo === 'semana' ? 'Reporte semanal: ' + desde + ' al ' + hasta : 'Reporte del día: ' + desde]).font = { bold: true, size: 14 };
             ws.addRow([]);
             const pinta = (row, color, fuente) => row.eachCell({ includeEmpty: true }, c => {
                 c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
                 c.font = fuente;
             });
-            pinta(ws.addRow(['Miembro', 'Fecha', 'Hora', 'Persona atendida', 'Servicio', 'Valor del servicio', '% ganancia', 'Ganancia']),
+            pinta(ws.addRow(['Miembro', 'Fecha', 'Hora', 'Persona atendida', 'Servicio', 'Valor del servicio', '% ganancia', 'Producto', 'Ganancia']),
                 'FF2563EB', { bold: true, color: { argb: 'FFFFFFFF' } });
             ws.views = [{ state: 'frozen', ySplit: 3 }];
-            let tv = 0, tg = 0;
+            let tv = 0, tp = 0, tg = 0;
             [...miembros.map(m => m.id), null].forEach(id => {
                 const l = at.filter(c => (c.miembro_id || null) === id);
                 if (!l.length) return;
                 const nombre = id ? miembros.find(m => m.id === id).nombre : 'Sin asignar';
-                let sv = 0, sg = 0;
+                let sv = 0, sp = 0, sg = 0;
                 l.forEach(c => {
-                    sv += +c.valor; sg += +c.ganancia;
-                    ws.addRow([nombre, c.fecha, c.hora.slice(0, 5), c.clienta || 'Sin nombre', c.servicio, +c.valor, +c.porcentaje, +c.ganancia]);
+                    sv += +c.valor; sp += +c.producto; sg += +c.ganancia;
+                    ws.addRow([nombre, c.fecha, c.hora.slice(0, 5), c.clienta || 'Sin nombre', c.servicio, +c.valor, +c.porcentaje, +c.producto, +c.ganancia]);
                 });
-                pinta(ws.addRow(['Total ' + nombre, '', '', '', '', sv, '', sg]), 'FFDBEAFE', { bold: true });
-                tv += sv; tg += sg;
+                pinta(ws.addRow(['Total ' + nombre, '', '', '', '', sv, '', sp, sg]), 'FFDBEAFE', { bold: true });
+                tv += sv; tp += sp; tg += sg;
             });
-            pinta(ws.addRow(['TOTAL GENERAL', '', '', '', '', tv, '', tg]), 'FFBFDBFE', { bold: true });
-            ws.eachRow((r, i) => { if (i > 3) { r.getCell(6).numFmt = '#,##0.00'; r.getCell(8).numFmt = '#,##0.00'; } });
+            pinta(ws.addRow(['TOTAL GENERAL', '', '', '', '', tv, '', tp, tg]), 'FFBFDBFE', { bold: true });
+            ws.eachRow((r, i) => { if (i > 3) { r.getCell(6).numFmt = '#,##0.00'; r.getCell(8).numFmt = '#,##0.00'; r.getCell(9).numFmt = '#,##0.00'; } });
             const buf = await wb.xlsx.writeBuffer();
             const a = h('a', {
                 href: URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })),
