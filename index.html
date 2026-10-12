@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Agenda de citas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <style>
+        :root {
+            --bg: #f3f7ff; --card: #fff; --ink: #0f1f3d; --mute: #5b6b88;
+            --acc: #2563eb; --acc2: #1d4ed8; --accink: #fff; --line: #dbe5f5; --err: #dc2626;
+            --ev: #dbeafe; --ok: #16a34a; --okbg: #dcfce7; --bad: #dc2626; --badbg: #fee2e2;
+            --sh: 0 8px 24px rgba(30, 64, 175, .12); --ease: cubic-bezier(.2, .8, .2, 1)
+        }
+        * { box-sizing: border-box }
+        [hidden] { display: none !important }
+        body {
+            margin: 0; min-height: 100vh; color: var(--ink);
+            background: linear-gradient(180deg, #e6eeff, var(--bg) 320px) var(--bg);
+            font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif
+        }
+        main { max-width: 1200px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 40px }
+        h1, h2 { font-weight: 700; margin: 0; letter-spacing: -.01em }
+        h1 { font-size: 1.6rem; color: var(--acc2) }
+        h2 { font-size: 1.15rem }
+        header { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 16px }
+        nav { display: flex; gap: 8px }
+        #vAgenda, #vConfig { animation: subir .3s var(--ease) }
+        .card {
+            background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+            padding: 20px; margin-bottom: 20px; max-width: 520px; box-shadow: var(--sh);
+            animation: subir .4s var(--ease)
+        }
+        label { display: block; font-size: .85rem; color: var(--mute); margin: 12px 0 4px }
+        input, select {
+            width: 100%; font: inherit; color: var(--ink); background: #fff;
+            border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+            transition: border-color .15s, box-shadow .15s
+        }
+        input:hover, select:hover { border-color: #b9cdf0 }
+        input:focus, select:focus { outline: 0; border-color: var(--acc); box-shadow: 0 0 0 3px rgba(37, 99, 235, .2) }
+        button {
+            font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--acc);
+            padding: 8px 14px; background: #fff; color: var(--acc);
+            transition: transform .15s var(--ease), box-shadow .15s, background .15s, color .15s
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37, 99, 235, .25) }
+        button:active { transform: translateY(0) scale(.96); box-shadow: none }
+        button:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px }
+        button.on, .primary { background: linear-gradient(180deg, #3b82f6, var(--acc)); color: var(--accink); border-color: var(--acc2) }
+        .primary { font-weight: 600; padding: 10px 18px }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+        .msg { min-height: 1.4em; margin: 8px 0 0; font-size: .9rem; color: var(--err) }
+        .empty { color: var(--mute); margin: 0; padding: 16px }
+        .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px }
+        .bar h2 { margin-right: auto }
+        .bar h2::first-letter { text-transform: uppercase }
+        .bar input { width: auto }
+        .calwrap {
+            overflow: auto; max-height: calc(100dvh - 170px); background: var(--card);
+            border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--sh)
+        }
+        .grid { display: grid; animation: subir .3s var(--ease) }
+        .hd {
+            position: sticky; top: 0; z-index: 2; background: rgba(255, 255, 255, .92);
+            -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+            padding: 10px 8px; font-weight: 600; text-align: center; color: var(--acc2);
+            border-bottom: 1px solid var(--line); border-left: 1px solid var(--line)
+        }
+        .corner { border-left: 0 }
+        .hd.hoy { background: var(--ev) }
+        .hd .dia { border: 0; background: none; color: inherit; font-weight: 600; padding: 2px 10px; text-transform: capitalize }
+        .hd .dia:hover { background: #fff }
+        .time, .cell { border-top: 1px dashed var(--line) }
+        .time.hr, .cell.hr { border-top-style: solid }
+        .time { font-size: .75rem; color: var(--mute); padding: 4px 6px; text-align: right; font-variant-numeric: tabular-nums }
+        .cell { position: relative; min-height: 44px; border-left: 1px solid var(--line); padding: 2px; transition: background .15s }
+        .cell:hover { background: #f6f9ff }
+        .add { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 8px; padding: 0; background: none }
+        .add:hover, .add:focus-visible { background: var(--ev); transform: none; box-shadow: none }
+        .add.mas { position: static; height: auto; padding: 3px; font-size: .75rem; color: var(--mute) }
+        .ev {
+            display: block; width: 100%; text-align: left; background: var(--ev); color: var(--ink);
+            border: 0; border-left: 4px solid var(--acc); border-radius: 8px;
+            padding: 5px 8px; margin-bottom: 2px; font-size: .85rem
+        }
+        .ev:hover { transform: translateY(-1px) scale(1.01); box-shadow: 0 4px 12px rgba(30, 64, 175, .2) }
+        .ev span { display: block; color: var(--mute); font-size: .8rem }
+        .ev.atendida { background: var(--okbg); border-left-color: var(--ok) }
+        .ev.cancelada { background: var(--badbg); border-left-color: var(--bad) }
+        .ev.pop { animation: pop .65s var(--ease) }
+        .velo {
+            position: fixed; inset: 0; z-index: 9; background: rgba(15, 31, 61, .25);
+            -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+            opacity: 0; pointer-events: none; transition: opacity .3s
+        }
+        body.abierto .velo { opacity: 1; pointer-events: auto }
+        .panel {
+            position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); z-index: 10;
+            background: var(--card); border-left: 1px solid var(--line);
+            box-shadow: -12px 0 40px rgba(15, 31, 61, .18);
+            display: flex; flex-direction: column; padding-top: env(safe-area-inset-top);
+            visibility: hidden; transform: translateX(105%);
+            transition: transform .4s var(--ease), visibility 0s .4s
+        }
+        body.abierto .panel { visibility: visible; transform: none; transition: transform .4s var(--ease), visibility 0s }
+        .top { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line) }
+        .body { flex: 1; overflow: auto; padding: 0 18px 16px }
+        fieldset { border: 0; margin: 0; padding: 0; min-width: 0 }
+        .foot {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line)
+        }
+        .foot small { display: block; color: var(--mute); font-size: .8rem }
+        .foot strong { font-size: 1.7rem; font-weight: 700; color: var(--acc2) }
+        ul { padding-left: 18px; margin: 12px 0 0 }
+        #listaMiembros { list-style: none; padding: 0 }
+        .mi { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line) }
+        .del { color: var(--err); border-color: var(--err); padding: 4px 10px; font-size: .85rem }
+        .del:hover { box-shadow: 0 6px 16px rgba(220, 38, 38, .25) }
+        @keyframes subir { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+        @keyframes pop {
+            0% { filter: blur(8px); transform: scale(.85); opacity: .3 }
+            60% { filter: blur(0); transform: scale(1.06); opacity: 1 }
+            100% { transform: none }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+
+        <section id="login" hidden>
+            <h1>Agenda de citas</h1>
+            <form id="loginForm" class="card" style="margin-top:20px">
+                <label for="email">Correo</label>
+                <input id="email" type="email" autocomplete="username" required>
+                <label for="pass">Contraseña</label>
+                <input id="pass" type="password" autocomplete="current-password" required>
+                <button class="primary" style="margin-top:16px;width:100%">Entrar</button>
+                <p id="loginMsg" class="msg" role="alert"></p>
+            </form>
+        </section>
+
+        <section id="app" hidden>
+            <header>
+                <h1>Agenda de citas</h1>
+                <nav>
+                    <button id="tAgenda" class="on" type="button">Agenda</button>
+                    <button id="tConfig" type="button">Configuración</button>
+                    <button id="logout" type="button">Salir</button>
+                </nav>
+            </header>
+
+            <div id="vAgenda">
+                <div class="bar">
+                    <h2 id="diaLbl"></h2>
+                    <button id="mDia" type="button" class="on">Día</button>
+                    <button id="mSem" type="button">Semana</button>
+                    <button id="prev" type="button" aria-label="Anterior">‹</button>
+                    <button id="hoyBtn" type="button">Hoy</button>
+                    <button id="next" type="button" aria-label="Siguiente">›</button>
+                    <input id="diaSel" type="date" aria-label="Ir a una fecha">
+                    <button id="reporte" type="button">Descargar reporte del día</button>
+                </div>
+                <div class="calwrap" id="cal"></div>
+            </div>
+
+            <div id="vConfig" hidden>
+                <form id="miembroForm" class="card">
+                    <h2>Miembros del equipo</h2>
+                    <label for="nuevoMiembro">Nombre</label>
+                    <input id="nuevoMiembro" required>
+                    <button class="primary" style="margin-top:14px">Añadir miembro</button>
+                    <p id="cmsg" class="msg" role="alert"></p>
+                    <ul id="listaMiembros"></ul>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="velo" class="velo"></div>
+    <form id="citaForm" class="panel">
+        <div class="top">
+            <h2 id="ptitulo">Nueva cita</h2>
+            <button id="cerrar" type="button" aria-label="Cerrar panel">Cerrar</button>
+        </div>
+        <div class="body">
+            <fieldset id="campos">
+                <div class="row">
+                    <div><label for="fecha">Fecha</label><input id="fecha" type="date" required></div>
+                    <div><label for="hora">Hora</label><input id="hora" type="time" required></div>
+                </div>
+                <label for="miembro">Quién atiende</label>
+                <select id="miembro"></select>
+                <label for="clienta">Persona a atender (opcional)</label>
+                <input id="clienta">
+                <label for="servicio">Servicio</label>
+                <input id="servicio" required>
+                <div class="row">
+                    <div><label for="valor">Valor del servicio</label><input id="valor" inputmode="decimal"
+                            autocomplete="off" required></div>
+                    <div><label for="desc">Porcentaje de ganancia (0 a 100 %)</label><input id="desc"
+                            inputmode="numeric" autocomplete="off" value="0"></div>
+                </div>
+                <label for="estado">Estado</label>
+                <select id="estado"></select>
+            </fieldset>
+            <p id="pmsg" class="msg" role="alert"></p>
+        </div>
+        <div class="foot">
+            <div><small>Ganancia</small><strong id="total">—</strong></div>
+            <button id="guardar" class="primary">Guardar cita</button>
+        </div>
+    </form>
+
+    <script>
+        // Pega aquí los datos de tu proyecto de Supabase
+        const SUPABASE_URL = "https://bixebpshnzvfzywrbnjr.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_2vGEFibJGkL7M3Iov71bXA_t0rsQEXD";
+
+        const INICIO = 7, FIN = 20; // horas visibles del calendario
+
+        const db = SUPABASE_URL.startsWith('https://') ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+        const $ = id => document.getElementById(id);
+        const hoy = () => new Date().toLocaleDateString('en-CA');
+        const h = (t, a = {}, ...c) => {
+            const e = document.createElement(t);
+            for (const k in a) k.startsWith('on') ? (e[k] = a[k]) : e.setAttribute(k, a[k]);
+            e.append(...c);
+            return e;
+        };
+        const hh = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+        const mins = t => { const [a, b] = t.split(':'); return +a * 60 + +b; };
+        const slotDe = c => Math.min(Math.max(Math.floor(mins(c.hora) / 30) * 30, INICIO * 60), FIN * 60 - 30);
+        const fmt = n => n.toLocaleString('es', { maximumFractionDigits: 2 });
+        const slots = [];
+        for (let m = INICIO * 60; m < FIN * 60; m += 30) slots.push(m);
+
+        let miembros = [], citas = [], dia = hoy(), editId = null, flash = null, modo = 'dia';
+        const gan = (v, p) => Math.round(v * p) / 100;
+        const ETQ = { atendida: 'Atendida', cancelada: 'Cancelada' };
+        function opcionesEstado(conBorrar) {
+            const s = $('estado');
+            s.textContent = '';
+            [['pendiente', 'Pendiente'], ['atendida', 'Atendida'], ['cancelada', 'Cancelada']]
+                .concat(conBorrar ? [['borrar', 'Borrar']] : [])
+                .forEach(([v, t]) => s.append(h('option', { value: v }, t)));
+        }
+
+        /* ---------- Sesión ---------- */
+        function show(logged) {
+            $('login').hidden = logged;
+            $('app').hidden = !logged;
+            if (logged) iniciar();
+        }
+        $('loginForm').onsubmit = async e => {
+            e.preventDefault();
+            if (!db) return;
+            const { error } = await db.auth.signInWithPassword({ email: $('email').value, password: $('pass').value });
+            if (error) $('loginMsg').textContent = 'Correo o contraseña incorrectos.';
+            else { $('loginMsg').textContent = ''; show(true); }
+        };
+        $('logout').onclick = async () => { await db.auth.signOut(); cerrar(); show(false); };
+
+        /* ---------- Navegación ---------- */
+        function vista(v) {
+            $('vAgenda').hidden = v !== 'agenda';
+            $('vConfig').hidden = v !== 'config';
+            $('tAgenda').classList.toggle('on', v === 'agenda');
+            $('tConfig').classList.toggle('on', v === 'config');
+            if (v !== 'agenda') cerrar();
+        }
+        $('tAgenda').onclick = () => vista('agenda');
+        $('tConfig').onclick = () => vista('config');
+        function mover(n) {
+            const d = new Date(dia + 'T00:00');
+            d.setDate(d.getDate() + n * (modo === 'semana' ? 7 : 1));
+            dia = d.toLocaleDateString('en-CA');
+            cerrar();
+            cargarCitas();
+        }
+        $('prev').onclick = () => mover(-1);
+        $('next').onclick = () => mover(1);
+        $('hoyBtn').onclick = () => { dia = hoy(); cerrar(); cargarCitas(); };
+        $('diaSel').onchange = e => { if (e.target.value) { dia = e.target.value; cerrar(); cargarCitas(); } };
+
+        /* ---------- Datos ---------- */
+        async function iniciar() {
+            await cargarMiembros();
+            await cargarCitas();
+        }
+        function aviso(txt) {
+            $('cal').textContent = '';
+            $('cal').append(h('p', { class: 'empty' }, txt));
+        }
+        async function cargarMiembros() {
+            const { data, error } = await db.from('miembros').select('*').order('created_at');
+            if (error) { aviso('No se pudieron cargar los miembros. Revisa que ejecutaste el SQL nuevo en Supabase.'); return; }
+            miembros = data;
+            const ul = $('listaMiembros');
+            ul.textContent = '';
+            miembros.forEach(m => ul.append(h('li', { class: 'mi' }, h('span', {}, m.nombre),
+                h('button', { type: 'button', class: 'del', onclick: () => borrarMiembro(m) }, 'Eliminar'))));
+            const s = $('miembro');
+            s.textContent = '';
+            miembros.forEach(m => s.append(h('option', { value: m.id }, m.nombre)));
+            renderCal();
+        }
+        async function cargarCitas() {
+            const { desde, hasta } = rango();
+            $('diaLbl').textContent = etiqueta(desde, hasta);
+            $('diaSel').value = dia;
+            const { data, error } = await db.from('citas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha').order('hora');
+            if (error) { aviso('No se pudieron cargar las citas. Revisa que ejecutaste el SQL nuevo en Supabase.'); return; }
+            citas = data;
+            renderCal();
+            flash = null;
+        }
+
+        /* ---------- Calendario ---------- */
+        function renderCal() {
+            modo === 'semana' ? renderSemana() : renderDia();
+        }
+        function renderDia() {
+            const cont = $('cal');
+            cont.textContent = '';
+            const cols = miembros.map(m => ({ id: m.id, nombre: m.nombre }));
+            if (citas.some(c => !c.miembro_id)) cols.push({ id: null, nombre: 'Sin asignar' });
+            if (!cols.length) { aviso('Agrega al menos un miembro en Configuración para ver el calendario.'); return; }
+
+            const g = h('div', { class: 'grid', style: 'grid-template-columns:56px repeat(' + cols.length + ',minmax(150px,1fr))' });
+            g.append(h('div', { class: 'hd corner' }));
+            cols.forEach(c => g.append(h('div', { class: 'hd' }, c.nombre)));
+
+            slots.forEach(s => {
+                const hr = s % 60 === 0 ? ' hr' : '';
+                g.append(h('div', { class: 'time' + hr }, hr ? hh(s) : ''));
+                cols.forEach(c => {
+                    const items = citas.filter(x => (x.miembro_id || null) === c.id && slotDe(x) === s);
+                    const cell = h('div', { class: 'cell' + hr });
+                    items.forEach(x => cell.append(
+                        h('button', { class: 'ev ' + (x.estado || '') + (x.id === flash ? ' pop' : ''), type: 'button', onclick: () => ver(x) },
+                            h('b', {}, x.clienta || 'Sin nombre'),
+                            h('span', {}, x.servicio + (ETQ[x.estado] ? ' · ' + ETQ[x.estado] : '')))
+                    ));
+                    if (c.id && items.every(x => x.estado === 'cancelada')) {
+                        cell.append(h('button', {
+                            class: 'add' + (items.length ? ' mas' : ''), type: 'button',
+                            'aria-label': 'Agendar a las ' + hh(s) + ' con ' + c.nombre,
+                            onclick: () => abrir(hh(s), c.id)
+                        }, items.length ? '+ Agendar' : ''));
+                    }
+                    g.append(cell);
+                });
+            });
+            cont.append(g);
+        }
+
+        /* ---------- Panel lateral ---------- */
+        function mostrar() {
+            
+            document.body.classList.add('abierto');
+        }
+        function cerrar() {
+            
+            document.body.classList.remove('abierto');
+        }
+        $('cerrar').onclick = cerrar;
+        $('velo').onclick = cerrar;
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
+
+        function abrir(hora, miembroId, fecha) {
+            $('citaForm').reset();
+            $('campos').disabled = false;
+            $('guardar').hidden = false;
+            editId = null;
+            opcionesEstado(false);
+            $('ptitulo').textContent = 'Nueva cita';
+            $('fecha').value = fecha || dia;
+            $('hora').value = hora;
+            $('miembro').value = miembroId;
+            $('pmsg').textContent = '';
+            calcTotal();
+            mostrar();
+            $('clienta').focus();
+        }
+        function ver(c) {
+            $('citaForm').reset();
+            editId = c.id;
+            opcionesEstado(c.estado !== 'atendida');
+            $('ptitulo').textContent = 'Cita';
+            $('fecha').value = c.fecha;
+            $('hora').value = c.hora.slice(0, 5);
+            $('miembro').value = c.miembro_id || '';
+            $('clienta').value = c.clienta;
+            $('servicio').value = c.servicio;
+            $('valor').value = c.valor;
+            $('desc').value = c.porcentaje;
+            $('estado').value = c.estado || 'pendiente';
+            const bloq = c.estado === 'atendida';
+            $('campos').disabled = bloq;
+            $('guardar').hidden = bloq;
+            $('pmsg').textContent = '';
+            calcTotal();
+            mostrar();
+        }
+
+        /* ---------- Valor y descuento ---------- */
+        function calcTotal() {
+            const e = $('estado').value;
+            const v = parseFloat($('valor').value) || 0;
+            const p = parseInt($('desc').value, 10) || 0;
+            $('total').textContent = e === 'atendida' ? fmt(gan(v, p)) : '—';
+            $('guardar').textContent = e === 'borrar' ? 'Borrar cita' : 'Guardar cita';
+        }
+        $('estado').onchange = calcTotal;
+        $('valor').oninput = e => {
+            let v = e.target.value.replace(',', '.').replace(/[^\d.]/g, '');
+            const p = v.split('.');
+            if (p.length > 2) v = p[0] + '.' + p.slice(1).join('');
+            e.target.value = v;
+            calcTotal();
+        };
+        $('desc').oninput = e => {
+            let v = e.target.value.replace(/\D/g, '').slice(0, 3);
+            if (v !== '') v = String(Math.min(+v, 100));
+            e.target.value = v;
+            calcTotal();
+        };
+
+        /* ---------- Guardar ---------- */
+        $('citaForm').onsubmit = async e => {
+            e.preventDefault();
+            const est = $('estado').value;
+            if (est === 'borrar') {
+                if (!confirm('¿Borrar esta cita?')) return;
+                const { error } = await db.from('citas').delete().eq('id', editId);
+                if (error) { $('pmsg').textContent = 'No se pudo borrar: ' + error.message; return; }
+                cerrar();
+                cargarCitas();
+                return;
+            }
+            if (est === 'atendida' && !confirm('Al marcarla como atendida ya no podrás editarla ni borrarla. ¿Continuar?')) return;
+            const valor = parseFloat($('valor').value) || 0;
+            const porcentaje = parseInt($('desc').value, 10) || 0;
+            const row = {
+                fecha: $('fecha').value,
+                hora: $('hora').value,
+                miembro_id: $('miembro').value || null,
+                clienta: $('clienta').value.trim(),
+                servicio: $('servicio').value.trim(),
+                valor, porcentaje,
+                estado: est,
+                ganancia: est === 'atendida' ? gan(valor, porcentaje) : null
+            };
+            const { error } = editId
+                ? await db.from('citas').update(row).eq('id', editId)
+                : await db.from('citas').insert(row);
+            if (error) { $('pmsg').textContent = 'No se pudo guardar: ' + error.message; return; }
+            cerrar();
+            dia = row.fecha;
+            if (est !== 'pendiente') flash = editId;
+            cargarCitas();
+        };
+
+        $('miembroForm').onsubmit = async e => {
+            e.preventDefault();
+            const n = $('nuevoMiembro').value.trim();
+            if (!n) return;
+            const { error } = await db.from('miembros').insert({ nombre: n });
+            if (error) { $('cmsg').textContent = 'No se pudo añadir: ' + error.message; return; }
+            $('cmsg').textContent = '';
+            e.target.reset();
+            cargarMiembros();
+        };
+
+        /* ---------- Vista semanal ---------- */
+        const iso = d => d.toLocaleDateString('en-CA');
+        function rango() {
+            if (modo === 'dia') return { desde: dia, hasta: dia };
+            const d = new Date(dia + 'T00:00');
+            d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // semana de lunes a domingo
+            const desde = iso(d);
+            d.setDate(d.getDate() + 6);
+            return { desde, hasta: iso(d) };
+        }
+        function etiqueta(a, b) {
+            const A = new Date(a + 'T00:00'), B = new Date(b + 'T00:00');
+            if (modo === 'dia') return A.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
+            const mes = d => d.toLocaleDateString('es', { month: 'long' });
+            return 'Semana del ' + A.getDate() + (A.getMonth() !== B.getMonth() ? ' de ' + mes(A) : '') + ' al ' + B.getDate() + ' de ' + mes(B);
+        }
+        function setModo(m) {
+            modo = m;
+            $('mDia').classList.toggle('on', m === 'dia');
+            $('mSem').classList.toggle('on', m === 'semana');
+            $('reporte').textContent = m === 'semana' ? 'Descargar reporte de la semana' : 'Descargar reporte del día';
+            cerrar();
+            cargarCitas();
+        }
+        $('mDia').onclick = () => setModo('dia');
+        $('mSem').onclick = () => setModo('semana');
+
+        function renderSemana() {
+            const cont = $('cal');
+            cont.textContent = '';
+            if (!miembros.length) { aviso('Agrega al menos un miembro en Configuración para ver el calendario.'); return; }
+            const { desde } = rango();
+            const dias = [];
+            for (let i = 0; i < 7; i++) { const d = new Date(desde + 'T00:00'); d.setDate(d.getDate() + i); dias.push(iso(d)); }
+            const nom = id => { const m = miembros.find(x => x.id === id); return m ? m.nombre : 'Sin asignar'; };
+            const g = h('div', { class: 'grid', style: 'grid-template-columns:56px repeat(7,minmax(130px,1fr))' });
+            g.append(h('div', { class: 'hd corner' }));
+            dias.forEach(f => g.append(h('div', { class: 'hd' + (f === hoy() ? ' hoy' : '') },
+                h('button', { type: 'button', class: 'dia', onclick: () => { dia = f; setModo('dia'); } },
+                    new Date(f + 'T00:00').toLocaleDateString('es', { weekday: 'short', day: 'numeric' })))));
+            slots.forEach(s => {
+                const hr = s % 60 === 0 ? ' hr' : '';
+                g.append(h('div', { class: 'time' + hr }, hr ? hh(s) : ''));
+                dias.forEach(f => {
+                    const items = citas.filter(x => x.fecha === f && slotDe(x) === s);
+                    const cell = h('div', { class: 'cell' + hr });
+                    items.forEach(x => cell.append(
+                        h('button', { class: 'ev ' + (x.estado || '') + (x.id === flash ? ' pop' : ''), type: 'button', onclick: () => ver(x) },
+                            h('b', {}, x.clienta || 'Sin nombre'),
+                            h('span', {}, nom(x.miembro_id) + (ETQ[x.estado] ? ' · ' + ETQ[x.estado] : '')))
+                    ));
+                    cell.append(h('button', {
+                        class: 'add' + (items.length ? ' mas' : ''), type: 'button',
+                        'aria-label': 'Agendar el ' + f + ' a las ' + hh(s),
+                        onclick: () => abrir(hh(s), miembros[0].id, f)
+                    }, items.length ? '+' : ''));
+                    g.append(cell);
+                });
+            });
+            cont.append(g);
+        }
+
+        /* ---------- Reporte y miembros ---------- */
+        const num = n => String(Math.round(n * 100) / 100).replace('.', ',');
+        const cel = v => { const t = String(v); return /[;"\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+        $('reporte').onclick = async () => {
+            const { desde, hasta } = rango();
+            const at = citas.filter(c => c.estado === 'atendida');
+            if (!at.length) { alert('No hay citas atendidas en ' + (modo === 'semana' ? 'esta semana.' : 'este día.')); return; }
+            if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Revisa tu conexión y recarga la página.'); return; }
+            const wb = new ExcelJS.Workbook();
+            const ws = wb.addWorksheet(modo === 'semana' ? 'Semana' : 'Día');
+            ws.columns = [{ width: 22 }, { width: 12 }, { width: 8 }, { width: 24 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 14 }];
+            ws.addRow([modo === 'semana' ? 'Reporte semanal: ' + desde + ' al ' + hasta : 'Reporte del día: ' + desde]).font = { bold: true, size: 14 };
+            ws.addRow([]);
+            const pinta = (row, color, fuente) => row.eachCell({ includeEmpty: true }, c => {
+                c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+                c.font = fuente;
+            });
+            pinta(ws.addRow(['Miembro', 'Fecha', 'Hora', 'Persona atendida', 'Servicio', 'Valor del servicio', '% ganancia', 'Ganancia']),
+                'FF2563EB', { bold: true, color: { argb: 'FFFFFFFF' } });
+            ws.views = [{ state: 'frozen', ySplit: 3 }];
+            let tv = 0, tg = 0;
+            [...miembros.map(m => m.id), null].forEach(id => {
+                const l = at.filter(c => (c.miembro_id || null) === id);
+                if (!l.length) return;
+                const nombre = id ? miembros.find(m => m.id === id).nombre : 'Sin asignar';
+                let sv = 0, sg = 0;
+                l.forEach(c => {
+                    sv += +c.valor; sg += +c.ganancia;
+                    ws.addRow([nombre, c.fecha, c.hora.slice(0, 5), c.clienta || 'Sin nombre', c.servicio, +c.valor, +c.porcentaje, +c.ganancia]);
+                });
+                pinta(ws.addRow(['Total ' + nombre, '', '', '', '', sv, '', sg]), 'FFDBEAFE', { bold: true });
+                tv += sv; tg += sg;
+            });
+            pinta(ws.addRow(['TOTAL GENERAL', '', '', '', '', tv, '', tg]), 'FFBFDBFE', { bold: true });
+            ws.eachRow((r, i) => { if (i > 3) { r.getCell(6).numFmt = '#,##0.00'; r.getCell(8).numFmt = '#,##0.00'; } });
+            const buf = await wb.xlsx.writeBuffer();
+            const a = h('a', {
+                href: URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })),
+                download: (modo === 'semana' ? 'reporte-semana-' : 'reporte-') + desde + '.xlsx'
+            });
+            document.body.append(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        };
+        async function borrarMiembro(m) {
+            if (!confirm('¿Eliminar a ' + m.nombre + '? Sus citas quedarán como "Sin asignar".')) return;
+            const { error } = await db.from('miembros').delete().eq('id', m.id);
+            if (error) { $('cmsg').textContent = 'No se pudo eliminar: ' + error.message; return; }
+            $('cmsg').textContent = '';
+            await cargarMiembros();
+            await cargarCitas();
+        }
+
+        /* ---------- Inicio ---------- */
+        if (!db) {
+            $('login').hidden = false;
+            $('loginMsg').textContent = 'Falta pegar la URL y la clave de Supabase al inicio del script en index.html.';
+        } else {
+            db.auth.getSession().then(({ data }) => show(!!data.session));
+        }
+    </script>
+</body>
+
+</html>
