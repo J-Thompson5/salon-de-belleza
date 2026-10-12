@@ -645,11 +645,10 @@
             pinta(ws.addRow(['TOTAL GENERAL', '', '', '', '', tv, '', tp, tg, '']), 'FFBFDBFE', { bold: true });
             ws.eachRow((r, i) => { if (i > 3) { r.getCell(6).numFmt = '#,##0.00'; r.getCell(8).numFmt = '#,##0.00'; r.getCell(9).numFmt = '#,##0.00'; } });
             const w2 = wb.addWorksheet('Por método de pago');
-            w2.columns = [{ width: 22 }, { width: 10 }, { width: 18 }, { width: 14 }];
+            w2.columns = [{ width: 24 }, { width: 16 }, { width: 18 }, { width: 16 }, { width: 16 }, { width: 16 }];
             w2.addRow([modo === 'semana' ? 'Totales por método de pago: ' + desde + ' al ' + hasta : 'Totales por método de pago: ' + desde]).font = { bold: true, size: 14 };
             w2.addRow([]);
             pinta(w2.addRow(['Método de pago', 'Citas', 'Valor total', 'Ganancia']), 'FF2563EB', { bold: true, color: { argb: 'FFFFFFFF' } });
-            w2.views = [{ state: 'frozen', ySplit: 3 }];
             let nc = 0, nv = 0, ng = 0;
             ['sinpe', 'efectivo', 'tarjeta', ''].forEach(k => {
                 const l = at.filter(c => (c.metodo_pago || '') === k);
@@ -660,6 +659,26 @@
             });
             pinta(w2.addRow(['TOTAL GENERAL', nc, nv, ng]), 'FFBFDBFE', { bold: true });
             w2.eachRow((r, i) => { if (i > 3) { r.getCell(3).numFmt = '#,##0.00'; r.getCell(4).numFmt = '#,##0.00'; } });
+            const bloque = (titulo, campo) => {
+                w2.addRow([]);
+                w2.addRow([titulo]).font = { bold: true, size: 12 };
+                const metodos = ['sinpe', 'efectivo', 'tarjeta'].concat(at.some(c => !c.metodo_pago) ? [''] : []);
+                pinta(w2.addRow(['Miembro', ...metodos.map(k => PAGO[k] || 'Sin definir'), 'Total']), 'FF2563EB', { bold: true, color: { argb: 'FFFFFFFF' } });
+                const tot = metodos.map(() => 0);
+                [...miembros.map(m => m.id), null].forEach(id => {
+                    const l = at.filter(c => (c.miembro_id || null) === id);
+                    if (!l.length && id === null) return;
+                    const nombre = id ? miembros.find(m => m.id === id).nombre : 'Sin asignar';
+                    const fila = metodos.map(k => l.filter(c => (c.metodo_pago || '') === k).reduce((x, c) => x + +c[campo], 0));
+                    fila.forEach((v, i) => { tot[i] += v; });
+                    w2.addRow([nombre, ...fila, fila.reduce((x, v) => x + v, 0)]).eachCell((c, i) => { if (i > 1) c.numFmt = '#,##0.00'; });
+                });
+                const rt = w2.addRow(['TOTAL GENERAL', ...tot, tot.reduce((x, v) => x + v, 0)]);
+                pinta(rt, 'FFBFDBFE', { bold: true });
+                rt.eachCell((c, i) => { if (i > 1) c.numFmt = '#,##0.00'; });
+            };
+            bloque('Valor cobrado por miembro y método de pago', 'valor');
+            bloque('Ganancia por miembro y método de pago', 'ganancia');
             const buf = await wb.xlsx.writeBuffer();
             const a = h('a', {
                 href: URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })),
