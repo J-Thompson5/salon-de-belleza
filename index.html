@@ -238,6 +238,13 @@
                 </div>
                 <label for="producto">Producto (opcional, se resta a la ganancia)</label>
                 <input id="producto" inputmode="decimal" autocomplete="off" placeholder="0">
+                <label for="pago">Método de pago</label>
+                <select id="pago">
+                    <option value="">Sin definir</option>
+                    <option value="sinpe">SINPE</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="tarjeta">Tarjeta</option>
+                </select>
                 <label for="estado">Estado</label>
                 <select id="estado"></select>
             </fieldset>
@@ -272,9 +279,10 @@
         const slots = [];
         for (let m = INICIO * 60; m < FIN * 60; m += 30) slots.push(m);
 
-        let miembros = [], citas = [], dia = hoy(), editId = null, flash = null, modo = 'dia';
+        let miembros = [], citas = [], dia = hoy(), editId = null, flash = null, modo = 'dia', soloPago = false;
         const gan = (v, p, pr = 0) => Math.round(v * p - pr * 100) / 100;
         const ETQ = { atendida: 'Atendida', cancelada: 'Cancelada' };
+        const PAGO = { sinpe: 'SINPE', efectivo: 'Efectivo', tarjeta: 'Tarjeta' };
         function opcionesEstado(conBorrar) {
             const s = $('estado');
             s.textContent = '';
@@ -393,6 +401,10 @@
         }
 
         /* ---------- Panel lateral ---------- */
+        function bloquear(soloMetodo) {
+            soloPago = soloMetodo;
+            $('campos').querySelectorAll('input,select').forEach(el => { el.disabled = soloMetodo && el.id !== 'pago'; });
+        }
         function mostrar() {
             
             document.body.classList.add('abierto');
@@ -407,7 +419,7 @@
 
         function abrir(hora, miembroId, fecha) {
             $('citaForm').reset();
-            $('campos').disabled = false;
+            bloquear(false);
             $('guardar').hidden = false;
             editId = null;
             opcionesEstado(false);
@@ -433,10 +445,11 @@
             $('valor').value = c.valor;
             $('desc').value = c.porcentaje;
             $('producto').value = c.producto || '';
+            $('pago').value = c.metodo_pago || '';
             $('estado').value = c.estado || 'pendiente';
             const bloq = c.estado === 'atendida';
-            $('campos').disabled = bloq;
-            $('guardar').hidden = bloq;
+            bloquear(bloq);
+            $('guardar').hidden = false;
             $('pmsg').textContent = '';
             calcTotal();
             mostrar();
@@ -457,10 +470,11 @@
         function calcTotal() {
             validarProducto();
             const e = $('estado').value;
+            $('pago').required = e === 'atendida';
             const v = parseFloat($('valor').value) || 0;
             const p = parseInt($('desc').value, 10) || 0;
             $('total').textContent = e === 'atendida' ? fmt(gan(v, p, parseFloat($('producto').value) || 0)) : '—';
-            $('guardar').textContent = e === 'borrar' ? 'Borrar cita' : 'Guardar cita';
+            $('guardar').textContent = e === 'borrar' ? 'Borrar cita' : soloPago ? 'Guardar método de pago' : 'Guardar cita';
         }
         $('estado').onchange = calcTotal;
         $('valor').oninput = $('producto').oninput = e => {
@@ -489,8 +503,15 @@
                 cargarCitas();
                 return;
             }
+            if (soloPago) {
+                const { error } = await db.from('citas').update({ metodo_pago: $('pago').value || null }).eq('id', editId);
+                if (error) { $('pmsg').textContent = 'No se pudo guardar: ' + error.message; return; }
+                cerrar();
+                cargarCitas();
+                return;
+            }
             if (!validarProducto()) return;
-            if (est === 'atendida' && !confirm('Al marcarla como atendida ya no podrás editarla ni borrarla. ¿Continuar?')) return;
+            if (est === 'atendida' && !confirm('Al marcarla como atendida solo podrás cambiar su método de pago; no podrás editarla ni borrarla. ¿Continuar?')) return;
             const valor = parseFloat($('valor').value) || 0;
             const porcentaje = parseInt($('desc').value, 10) || 0;
             const producto = parseFloat($('producto').value) || 0;
@@ -502,6 +523,7 @@
                 servicio: $('servicio').value.trim(),
                 valor, porcentaje, producto,
                 estado: est,
+                metodo_pago: $('pago').value || null,
                 ganancia: est === 'atendida' ? gan(valor, porcentaje, producto) : null
             };
             const { error } = editId
@@ -597,14 +619,14 @@
             if (typeof ExcelJS === 'undefined') { alert('No se pudo cargar el generador de Excel. Revisa tu conexión y recarga la página.'); return; }
             const wb = new ExcelJS.Workbook();
             const ws = wb.addWorksheet(modo === 'semana' ? 'Semana' : 'Día');
-            ws.columns = [{ width: 22 }, { width: 12 }, { width: 8 }, { width: 24 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 14 }, { width: 14 }];
+            ws.columns = [{ width: 22 }, { width: 12 }, { width: 8 }, { width: 24 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 14 }, { width: 14 }, { width: 16 }];
             ws.addRow([modo === 'semana' ? 'Reporte semanal: ' + desde + ' al ' + hasta : 'Reporte del día: ' + desde]).font = { bold: true, size: 14 };
             ws.addRow([]);
             const pinta = (row, color, fuente) => row.eachCell({ includeEmpty: true }, c => {
                 c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
                 c.font = fuente;
             });
-            pinta(ws.addRow(['Miembro', 'Fecha', 'Hora', 'Persona atendida', 'Servicio', 'Valor del servicio', '% ganancia', 'Producto', 'Ganancia']),
+            pinta(ws.addRow(['Miembro', 'Fecha', 'Hora', 'Persona atendida', 'Servicio', 'Valor del servicio', '% ganancia', 'Producto', 'Ganancia', 'Método de pago']),
                 'FF2563EB', { bold: true, color: { argb: 'FFFFFFFF' } });
             ws.views = [{ state: 'frozen', ySplit: 3 }];
             let tv = 0, tp = 0, tg = 0;
@@ -615,12 +637,12 @@
                 let sv = 0, sp = 0, sg = 0;
                 l.forEach(c => {
                     sv += +c.valor; sp += +c.producto; sg += +c.ganancia;
-                    ws.addRow([nombre, c.fecha, c.hora.slice(0, 5), c.clienta || 'Sin nombre', c.servicio, +c.valor, +c.porcentaje, +c.producto, +c.ganancia]);
+                    ws.addRow([nombre, c.fecha, c.hora.slice(0, 5), c.clienta || 'Sin nombre', c.servicio, +c.valor, +c.porcentaje, +c.producto, +c.ganancia, PAGO[c.metodo_pago] || '']);
                 });
-                pinta(ws.addRow(['Total ' + nombre, '', '', '', '', sv, '', sp, sg]), 'FFDBEAFE', { bold: true });
+                pinta(ws.addRow(['Total ' + nombre, '', '', '', '', sv, '', sp, sg, '']), 'FFDBEAFE', { bold: true });
                 tv += sv; tp += sp; tg += sg;
             });
-            pinta(ws.addRow(['TOTAL GENERAL', '', '', '', '', tv, '', tp, tg]), 'FFBFDBFE', { bold: true });
+            pinta(ws.addRow(['TOTAL GENERAL', '', '', '', '', tv, '', tp, tg, '']), 'FFBFDBFE', { bold: true });
             ws.eachRow((r, i) => { if (i > 3) { r.getCell(6).numFmt = '#,##0.00'; r.getCell(8).numFmt = '#,##0.00'; r.getCell(9).numFmt = '#,##0.00'; } });
             const buf = await wb.xlsx.writeBuffer();
             const a = h('a', {
