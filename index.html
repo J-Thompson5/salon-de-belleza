@@ -280,7 +280,7 @@
         for (let m = INICIO * 60; m < FIN * 60; m += 30) slots.push(m);
 
         let miembros = [], citas = [], dia = hoy(), editId = null, flash = null, modo = 'dia', soloPago = false;
-        const gan = (v, p, pr = 0) => Math.round(v * p - pr * 100) / 100;
+        const gan = (v, p, pr = 0) => Math.round((v - pr) * p) / 100;
         const ETQ = { atendida: 'Atendida', cancelada: 'Cancelada' };
         const PAGO = { sinpe: 'SINPE', efectivo: 'Efectivo', tarjeta: 'Tarjeta' };
         function opcionesEstado(conBorrar) {
@@ -458,11 +458,9 @@
         /* ---------- Valor y descuento ---------- */
         function validarProducto() {
             const v = parseFloat($('valor').value) || 0;
-            const p = parseInt($('desc').value, 10) || 0;
             const pr = parseFloat($('producto').value) || 0;
-            const max = Math.floor(v * p + 1e-7) / 100; // valor x porcentaje de ganancia
-            const mal = pr > max + 1e-9;
-            const txt = mal ? 'El producto no puede ser mayor que la ganancia (' + fmt(max) + ').' : '';
+            const mal = pr > v;
+            const txt = mal ? 'El producto no puede ser mayor que el valor del servicio.' : '';
             $('producto').setCustomValidity(txt);
             $('pmsg').textContent = txt;
             return !mal;
