@@ -33,5 +33,11 @@ dist-ssr
 
 # Environment
 .env
+.env.*
+
+# Supabase CLI local state (contains local secrets like docker.env)
+supabase/.temp/
+supabase/.branches/
+
 .workspace
 
