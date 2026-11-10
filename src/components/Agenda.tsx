@@ -64,6 +64,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
   const [pmsg, setPmsg] = useState("");
   const [cmsg, setCmsg] = useState("");
   const [nuevo, setNuevo] = useState("");
+  const [confirmarAtendida, setConfirmarAtendida] = useState(false);
 
   const { desde, hasta } = rango(dia, vista === "metricas" ? "semana" : modo);
   const colorDe = (id: string | null) => {
@@ -112,12 +113,20 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     return () => clearTimeout(t);
   }, [flash, citas]);
 
-  const cerrar = () => setAbierto(false);
+  const cerrar = () => {
+    setConfirmarAtendida(false);
+    setAbierto(false);
+  };
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && cerrar();
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (confirmarAtendida) setConfirmarAtendida(false);
+        else cerrar();
+      }
+    };
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
-  }, []);
+  }, [confirmarAtendida]);
   useEffect(() => {
     document.body.style.overflow = abierto ? "hidden" : "";
   }, [abierto]);
@@ -166,30 +175,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
   const total = f.estado === "atendida" ? fmt(gan(valorN, pctN, prodN)) : "—";
   const set = (k: keyof Form, v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  async function guardar(e: FormEvent) {
-    e.preventDefault();
-    const est = f.estado;
-    if (est === "borrar") {
-      if (!confirm("¿Borrar esta cita?")) return;
-      const { error } = await supabase.from("citas").delete().eq("id", editId!);
-      if (error) return setPmsg("No se pudo borrar: " + error.message);
-      cerrar();
-      return cargarCitas();
-    }
-    if (soloPago) {
-      const { error } = await supabase.from("citas").update({ metodo_pago: f.pago || null }).eq("id", editId!);
-      if (error) return setPmsg("No se pudo guardar: " + error.message);
-      cerrar();
-      return cargarCitas();
-    }
-    if (productoMal) return;
-    if (
-      est === "atendida" &&
-      !confirm(
-        "Al marcarla como atendida solo podrás cambiar su método de pago; no podrás editarla ni borrarla. ¿Continuar?",
-      )
-    )
-      return;
+  async function ejecutarGuardado(est: string) {
     const row = {
       fecha: f.fecha,
       hora: f.hora,
@@ -207,10 +193,35 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
       ? await supabase.from("citas").update(row).eq("id", editId)
       : await supabase.from("citas").insert(row);
     if (error) return setPmsg("No se pudo guardar: " + error.message);
+    setConfirmarAtendida(false);
     cerrar();
     if (est !== "pendiente") setFlash(editId);
     if (row.fecha !== dia) setDia(row.fecha);
     else cargarCitas();
+  }
+
+  async function guardar(e: FormEvent) {
+    e.preventDefault();
+    const est = f.estado;
+    if (est === "borrar") {
+      if (!confirm("¿Borrar esta cita?")) return;
+      const { error } = await supabase.from("citas").delete().eq("id", editId!);
+      if (error) return setPmsg("No se pudo borrar: " + error.message);
+      cerrar();
+      return cargarCitas();
+    }
+    if (soloPago) {
+      const { error } = await supabase.from("citas").update({ metodo_pago: f.pago || null }).eq("id", editId!);
+      if (error) return setPmsg("No se pudo guardar: " + error.message);
+      cerrar();
+      return cargarCitas();
+    }
+    if (productoMal) return;
+    if (est === "atendida") {
+      setConfirmarAtendida(true);
+      return;
+    }
+    await ejecutarGuardado(est);
   }
 
   async function agregarMiembro(e: FormEvent) {
@@ -565,6 +576,41 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
           <button className="btn btn-primary">{guardarTxt}</button>
         </div>
       </form>
+
+      {confirmarAtendida && (
+        <div className="modal-overlay" onClick={() => setConfirmarAtendida(false)} role="dialog" aria-modal="true" aria-labelledby="modal-atendida-title">
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-hd">
+              <div className="modal-icon" aria-hidden="true">✓</div>
+              <h3 id="modal-atendida-title" className="modal-title">¿Marcar cita como atendida?</h3>
+            </div>
+            <div className="modal-body">
+              <p>
+                Estás a punto de completar la cita de {f.clienta ? <strong>{f.clienta}</strong> : "esta clienta"} ({f.servicio}).
+              </p>
+              <div className="modal-note">
+                <strong>Importante:</strong> Una vez marcada como atendida solo podrás actualizar el método de pago; no podrás modificar otros datos ni eliminar la cita.
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setConfirmarAtendida(false)}
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => ejecutarGuardado("atendida")}
+              >
+                Confirmar y guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

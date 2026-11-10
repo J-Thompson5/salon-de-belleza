@@ -362,6 +362,17 @@
   .salon .foot small { display: block; color: var(--s-mute); font-size: .78rem; }
   .salon .foot strong { font-family: var(--s-display); font-size: 1.8rem; background: var(--s-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
+  /* Modal de confirmación personalizado */
+  .salon .modal-overlay { position: fixed; inset: 0; z-index: 50; background: var(--s-veil); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 20px; animation: s-up .25s var(--s-ease); }
+  .salon .modal-card { width: min(440px, 100%); background: var(--s-surface); border-radius: 24px; box-shadow: var(--s-sh-lg); border: 1px solid var(--s-line); overflow: hidden; animation: s-pop .3s var(--s-ease); }
+  .salon .modal-hd { display: flex; align-items: center; gap: 14px; padding: 22px 24px 14px; }
+  .salon .modal-icon { width: 44px; height: 44px; border-radius: 14px; background: var(--s-okbg); color: var(--s-ok); display: grid; place-items: center; font-size: 1.3rem; flex-shrink: 0; }
+  .salon .modal-title { font-family: var(--s-display); font-size: 1.35rem; margin: 0; line-height: 1.2; }
+  .salon .modal-body { padding: 0 24px 20px; color: var(--s-mute); font-size: .92rem; line-height: 1.5; display: grid; gap: 12px; }
+  .salon .modal-body strong { color: var(--s-ink); }
+  .salon .modal-note { padding: 12px 14px; background: var(--s-soft); border-radius: 14px; border-left: 3px solid var(--s-primary); font-size: .85rem; color: var(--s-ink); }
+  .salon .modal-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 16px 24px; background: var(--s-bg); border-top: 1px solid var(--s-line); }
+
   @media (max-width: 900px) {
     .salon .auth { grid-template-columns: 1fr; }
     .salon .auth-art { padding: 32px; min-height: 260px; }
