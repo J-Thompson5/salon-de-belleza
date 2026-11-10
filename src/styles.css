@@ -1,0 +1,384 @@
+/*
+ * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
+ * - Keep every @import in this top block, above @theme and the rest of the file. Install an
+ *   npm package before @importing its CSS. Never @import a remote URL (web fonts, CDN CSS): the
+ *   build resolves @import from the filesystem. Load those with a <link> in the head() of
+ *   src/routes/__root.tsx and name the family in a --font-* token in @theme inline below.
+ */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The design lives in this file: oklch color tokens on the shadcn variables
+ * (--background, --foreground, --primary, --secondary, --muted, --accent, ...) plus
+ * new tokens as needed, font tokens, and custom styles and animations.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.129 0.042 264.695);
+  --primary: oklch(0.208 0.042 265.755);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.968 0.007 247.896);
+  --accent-foreground: oklch(0.208 0.042 265.755);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.704 0.04 256.788);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+/* ---------- Salon agenda design system ---------- */
+:root {
+  --s-bg: oklch(0.975 0.012 30);
+  --s-surface: oklch(1 0 0);
+  --s-ink: oklch(0.22 0.03 15);
+  --s-mute: oklch(0.53 0.03 15);
+  --s-line: oklch(0.92 0.015 20);
+  --s-side: oklch(0.19 0.035 10);
+  --s-side-2: oklch(0.25 0.045 10);
+  --s-side-ink: oklch(0.96 0.01 30);
+  --s-side-mute: oklch(0.72 0.03 20);
+  --s-primary: oklch(0.63 0.22 5);
+  --s-primary-2: oklch(0.55 0.21 10);
+  --s-coral: oklch(0.72 0.17 35);
+  --s-gold: oklch(0.82 0.13 80);
+  --s-on: oklch(1 0 0);
+  --s-soft: oklch(0.95 0.035 10);
+  --s-ok: oklch(0.65 0.15 155);
+  --s-okbg: oklch(0.95 0.05 155);
+  --s-bad: oklch(0.6 0.2 25);
+  --s-badbg: oklch(0.95 0.035 25);
+  --s-veil: oklch(0.19 0.035 10 / 0.35);
+  --s-grad: linear-gradient(135deg, var(--s-primary), var(--s-coral));
+  --s-grad-gold: linear-gradient(135deg, var(--s-coral), var(--s-gold));
+  --s-sh: 0 10px 30px -12px oklch(0.55 0.21 10 / 0.25);
+  --s-sh-lg: 0 24px 60px -20px oklch(0.19 0.035 10 / 0.45);
+  --s-ease: cubic-bezier(.2, .8, .2, 1);
+  --staff-0: oklch(0.63 0.22 5);
+  --staff-1: oklch(0.68 0.12 190);
+  --staff-2: oklch(0.72 0.17 45);
+  --staff-3: oklch(0.65 0.14 150);
+  --staff-4: oklch(0.62 0.15 250);
+  --staff-5: oklch(0.75 0.14 85);
+  --s-display: "Playfair Display", Georgia, serif;
+  --s-body: "Outfit", system-ui, sans-serif;
+}
+
+@layer components {
+  .salon { min-height: 100vh; color: var(--s-ink); background: var(--s-bg); font: 15px/1.5 var(--s-body); }
+  .salon * { box-sizing: border-box; }
+  .salon h1, .salon h2, .salon h3 { margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  .salon .display { font-family: var(--s-display); }
+  .salon label { display: block; font-size: .8rem; font-weight: 500; color: var(--s-mute); margin: 12px 0 4px; }
+  .salon input, .salon select { width: 100%; font: inherit; color: var(--s-ink); background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 12px; padding: 10px 12px; transition: border-color .15s, box-shadow .15s; }
+  .salon input:focus, .salon select:focus { outline: 0; border-color: var(--s-primary); box-shadow: 0 0 0 4px oklch(0.63 0.22 5 / .15); }
+  .salon input:disabled, .salon select:disabled { opacity: .55; }
+  .salon button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; transition: transform .18s var(--s-ease), box-shadow .18s, background .18s, color .18s, opacity .18s; }
+  .salon button:focus-visible { outline: 2px solid var(--s-primary); outline-offset: 2px; }
+  .salon .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; padding: 9px 16px; font-weight: 500; border: 1px solid var(--s-line); background: var(--s-surface); color: var(--s-ink); }
+  .salon .btn:hover { border-color: var(--s-primary); color: var(--s-primary); }
+  .salon .btn-primary { background: var(--s-grad); color: var(--s-on); border-color: transparent; box-shadow: var(--s-sh); font-weight: 600; }
+  .salon .btn-primary:hover { color: var(--s-on); transform: translateY(-2px); box-shadow: 0 16px 34px -12px oklch(0.55 0.21 10 / .45); }
+  .salon .btn-primary:active { transform: scale(.97); }
+  .salon .icon-btn { width: 38px; height: 38px; border-radius: 999px; display: inline-grid; place-items: center; border: 1px solid var(--s-line); background: var(--s-surface); }
+  .salon .icon-btn:hover { border-color: var(--s-primary); color: var(--s-primary); }
+  .salon .full { width: 100%; margin-top: 18px; }
+  .salon .msg { min-height: 1.4em; margin: 8px 0 0; font-size: .88rem; color: var(--s-bad); }
+  .salon .msg.ok { color: var(--s-ok); }
+  .salon .empty { color: var(--s-mute); margin: 0; padding: 40px; text-align: center; }
+
+  /* Auth screens */
+  .salon .auth { min-height: 100vh; display: grid; grid-template-columns: 1.1fr 1fr; }
+  .salon .auth-art { background: var(--s-side); color: var(--s-side-ink); padding: 56px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+  .salon .auth-art::before { content: ""; position: absolute; width: 520px; height: 520px; border-radius: 50%; background: var(--s-grad); filter: blur(90px); opacity: .55; right: -160px; top: -140px; animation: s-float 9s ease-in-out infinite; }
+  .salon .auth-art::after { content: ""; position: absolute; width: 360px; height: 360px; border-radius: 50%; background: var(--s-grad-gold); filter: blur(90px); opacity: .4; left: -120px; bottom: -120px; animation: s-float 11s ease-in-out infinite reverse; }
+  .salon .auth-art > * { position: relative; z-index: 1; }
+  .salon .auth-art h1 { font-family: var(--s-display); font-size: clamp(2.4rem, 4vw, 3.6rem); line-height: 1.05; }
+  .salon .auth-art em { font-style: italic; background: var(--s-grad-gold); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .salon .auth-art p { color: var(--s-side-mute); max-width: 380px; }
+  .salon .auth-form { display: grid; place-items: center; padding: 32px; }
+  .salon .auth-card { width: min(400px, 100%); animation: s-up .5s var(--s-ease); }
+  .salon .auth-card h2 { font-family: var(--s-display); font-size: 2rem; margin-bottom: 4px; }
+  .salon .auth-card .sub { color: var(--s-mute); margin: 0 0 12px; }
+  .salon .linkbtn { padding: 4px 0; margin-top: 12px; font-size: .9rem; color: var(--s-primary); font-weight: 500; }
+  .salon .linkbtn:hover { text-decoration: underline; }
+  .salon .brand { display: flex; align-items: center; gap: 10px; font-family: var(--s-display); font-size: 1.3rem; font-weight: 700; }
+  .salon .brand-dot { width: 34px; height: 34px; border-radius: 12px; background: var(--s-grad); display: grid; place-items: center; color: var(--s-on); box-shadow: var(--s-sh); }
+
+  /* Shell */
+  .salon .shell { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
+  .salon .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--s-side); color: var(--s-side-ink); padding: 24px 18px; display: flex; flex-direction: column; gap: 22px; z-index: 20; }
+  .salon .side-nav { display: grid; gap: 4px; }
+  .salon .side-nav button { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 14px; color: var(--s-side-mute); font-weight: 500; text-align: left; }
+  .salon .side-nav button:hover { background: var(--s-side-2); color: var(--s-side-ink); }
+  .salon .side-nav button.on { background: var(--s-grad); color: var(--s-on); box-shadow: var(--s-sh); }
+  .salon .side-label { font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--s-side-mute); margin: 0 0 10px 4px; }
+  .salon .side-foot { margin-top: auto; }
+  .salon .legend { display: grid; gap: 8px; }
+  .salon .legend li { display: flex; align-items: center; gap: 10px; font-size: .88rem; color: var(--s-side-ink); }
+  .salon .legend ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .salon .sw { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px color-mix(in oklab, var(--c) 30%, transparent); }
+  .salon .content { min-width: 0; padding: 26px 30px 120px; }
+  .salon .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; animation: s-up .4s var(--s-ease); }
+  .salon .topbar h1 { font-family: var(--s-display); font-size: 2rem; margin-right: auto; }
+  .salon .topbar h1::first-letter { text-transform: uppercase; }
+  .salon .eyebrow { display: block; font-family: var(--s-body); font-size: .75rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--s-primary); margin-bottom: 2px; }
+  .salon .menu-btn { display: none; }
+
+  /* Mini calendar */
+  .salon .mini { background: var(--s-side-2); border-radius: 18px; padding: 14px; }
+  .salon .mini-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: 600; text-transform: capitalize; }
+  .salon .mini-hd button { width: 28px; height: 28px; border-radius: 999px; color: var(--s-side-mute); }
+  .salon .mini-hd button:hover { background: var(--s-side); color: var(--s-side-ink); }
+  .salon .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+  .salon .mini-grid .wd { font-size: .68rem; color: var(--s-side-mute); padding: 4px 0; text-transform: uppercase; }
+  .salon .mini-grid button { aspect-ratio: 1; border-radius: 10px; font-size: .82rem; color: var(--s-side-ink); position: relative; }
+  .salon .mini-grid button:hover { background: var(--s-side); }
+  .salon .mini-grid button.out { color: var(--s-side-mute); opacity: .45; }
+  .salon .mini-grid button.wk { background: oklch(0.63 0.22 5 / .18); }
+  .salon .mini-grid button.today { box-shadow: inset 0 0 0 1px var(--s-gold); }
+  .salon .mini-grid button.sel { background: var(--s-grad); color: var(--s-on); font-weight: 700; }
+
+  /* Calendar */
+  .salon .calwrap { overflow: auto; max-height: calc(100dvh - 130px); background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 22px; box-shadow: var(--s-sh); animation: s-up .45s var(--s-ease); }
+  .salon .grid { display: grid; }
+  .salon .hd { position: sticky; top: 0; z-index: 2; background: color-mix(in oklab, var(--s-surface) 90%, transparent); backdrop-filter: blur(8px); padding: 12px 8px; font-weight: 600; text-align: center; border-bottom: 1px solid var(--s-line); border-left: 1px solid var(--s-line); display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .salon .hd .av { width: 28px; height: 28px; border-radius: 50%; background: var(--c); color: var(--s-on); display: grid; place-items: center; font-size: .8rem; font-weight: 700; }
+  .salon .corner { border-left: 0; left: 0; z-index: 3; }
+  .salon .hd.hoy { color: var(--s-primary); }
+  .salon .hd.hoy::after { content: ""; position: absolute; left: 20%; right: 20%; bottom: 0; height: 3px; border-radius: 3px; background: var(--s-grad); }
+  .salon .hd .dia { font-weight: 600; padding: 2px 10px; border-radius: 999px; text-transform: capitalize; }
+  .salon .hd .dia:hover { background: var(--s-soft); }
+  .salon .time, .salon .cell { border-top: 1px dashed var(--s-line); }
+  .salon .time.hr, .salon .cell.hr { border-top-style: solid; }
+  .salon .time { position: sticky; left: 0; z-index: 1; background: var(--s-surface); font-size: .72rem; color: var(--s-mute); padding: 4px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+  .salon .cell { position: relative; min-height: 46px; border-left: 1px solid var(--s-line); padding: 3px; transition: background .15s; }
+  .salon .cell:hover { background: oklch(0.98 0.015 15); }
+  .salon .add { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px; opacity: 0; color: var(--s-primary); font-weight: 600; font-size: .8rem; }
+  .salon .add:hover, .salon .add:focus-visible { opacity: 1; background: var(--s-soft); }
+  .salon .add::before { content: "+ Agendar"; }
+  .salon .add.mas { position: static; height: auto; padding: 3px; opacity: .7; }
+  .salon .ev { display: block; width: 100%; text-align: left; background: color-mix(in oklab, var(--c) 14%, var(--s-surface)); border-left: 4px solid var(--c); border-radius: 10px; padding: 6px 9px; margin-bottom: 3px; font-size: .84rem; color: var(--s-ink); }
+  .salon .ev:hover { transform: translateY(-1px) scale(1.015); box-shadow: 0 10px 20px -10px color-mix(in oklab, var(--c) 70%, transparent); }
+  .salon .ev b { display: flex; align-items: center; gap: 6px; }
+  .salon .ev span { display: block; color: var(--s-mute); font-size: .78rem; }
+  .salon .ev .tag { font-size: .65rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+  .salon .ev.atendida .tag { background: var(--s-okbg); color: var(--s-ok); }
+  .salon .ev.cancelada { opacity: .6; text-decoration: line-through; background: repeating-linear-gradient(135deg, var(--s-badbg) 0 6px, var(--s-surface) 6px 12px); border-left-color: var(--s-bad); }
+  .salon .ev.cancelada .tag { background: var(--s-badbg); color: var(--s-bad); }
+  .salon .ev.pop { animation: s-pop .65s var(--s-ease); }
+
+  /* Floating controls */
+  .salon .fab { position: fixed; bottom: 24px; left: calc(290px + (100vw - 290px) / 2); transform: translateX(-50%); z-index: 15; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: var(--s-side); box-shadow: var(--s-sh-lg); animation: s-rise .5s var(--s-ease); }
+  .salon .fab button { padding: 10px 18px; border-radius: 999px; color: var(--s-side-mute); font-weight: 600; }
+  .salon .fab button:hover { color: var(--s-side-ink); }
+  .salon .fab button.on { background: var(--s-grad); color: var(--s-on); box-shadow: var(--s-sh); }
+  .salon .fab .sep { width: 1px; height: 22px; background: var(--s-side-2); }
+
+  /* Cards / metrics */
+  .salon .card { background: var(--s-surface); border: 1px solid var(--s-line); border-radius: 22px; padding: 22px; box-shadow: var(--s-sh); animation: s-up .45s var(--s-ease) both; }
+  .salon .card h3 { font-size: 1rem; margin-bottom: 14px; }
+  .salon .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 18px; }
+  .salon .kpi { position: relative; overflow: hidden; }
+  .salon .kpi small { color: var(--s-mute); font-weight: 500; }
+  .salon .kpi strong { display: block; font-family: var(--s-display); font-size: 2rem; line-height: 1.15; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .salon .kpi.hero { background: var(--s-grad); color: var(--s-on); border-color: transparent; }
+  .salon .kpi.hero small { color: var(--s-on); opacity: .85; }
+  .salon .kpi.dark { background: var(--s-side); color: var(--s-side-ink); border-color: transparent; }
+  .salon .kpi.dark small { color: var(--s-side-mute); }
+  .salon .kpi .hint { font-size: .8rem; opacity: .8; }
+  .salon .mgrid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .salon .bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; align-items: end; height: 200px; }
+  .salon .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; font-size: .75rem; color: var(--s-mute); text-transform: capitalize; }
+  .salon .bar-stack { width: 100%; max-width: 46px; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: 2px; }
+  .salon .bar-v { background: var(--s-soft); border-radius: 10px 10px 4px 4px; transition: height .6s var(--s-ease); min-height: 2px; position: relative; }
+  .salon .bar-g { position: absolute; left: 0; right: 0; bottom: 0; background: var(--s-grad); border-radius: 10px 10px 4px 4px; transition: height .6s var(--s-ease); }
+  .salon .bar-col b { color: var(--s-ink); font-size: .72rem; }
+  .salon .meth { display: grid; gap: 14px; }
+  .salon .meth-row { display: grid; gap: 6px; }
+  .salon .meth-row div:first-child { display: flex; justify-content: space-between; font-size: .9rem; }
+  .salon .track { height: 10px; border-radius: 999px; background: var(--s-soft); overflow: hidden; }
+  .salon .track i { display: block; height: 100%; border-radius: 999px; background: var(--c, var(--s-primary)); transition: width .6s var(--s-ease); }
+  .salon .dot-legend { display: flex; gap: 14px; font-size: .8rem; color: var(--s-mute); margin-top: 12px; }
+  .salon .dot-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+  .salon table { width: 100%; border-collapse: collapse; font-size: .9rem; font-variant-numeric: tabular-nums; }
+  .salon th { text-align: right; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--s-mute); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--s-line); }
+  .salon td { text-align: right; padding: 10px; border-bottom: 1px solid var(--s-line); }
+  .salon th:first-child, .salon td:first-child { text-align: left; }
+  .salon tfoot td { font-weight: 700; border-bottom: 0; color: var(--s-primary-2); }
+  .salon .tbl-wrap { overflow-x: auto; }
+  .salon .who { display: flex; align-items: center; gap: 10px; }
+  .salon .live { display: inline-flex; align-items: center; gap: 8px; font-size: .8rem; font-weight: 600; color: var(--s-ok); background: var(--s-okbg); padding: 6px 12px; border-radius: 999px; }
+  .salon .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--s-ok); animation: s-pulse 1.6s infinite; }
+
+  /* Team */
+  .salon .team { max-width: 640px; }
+  .salon .team-list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
+  .salon .team-list li { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--s-line); border-radius: 16px; }
+  .salon .team-list li span { margin-right: auto; font-weight: 500; }
+  .salon .inline-form { display: flex; gap: 10px; align-items: end; }
+  .salon .del { color: var(--s-bad); border-color: var(--s-badbg); }
+  .salon .del:hover { background: var(--s-badbg); color: var(--s-bad); border-color: var(--s-bad); }
+
+  /* Side panel */
+  .salon .velo { position: fixed; inset: 0; z-index: 30; background: var(--s-veil); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .salon .velo.open { opacity: 1; pointer-events: auto; }
+  .salon .panel { position: fixed; top: 12px; right: 12px; bottom: 12px; width: min(420px, calc(100% - 24px)); z-index: 31; background: var(--s-surface); border-radius: 26px; box-shadow: var(--s-sh-lg); display: flex; flex-direction: column; overflow: hidden; visibility: hidden; transform: translateX(110%); transition: transform .45s var(--s-ease), visibility 0s .45s; }
+  .salon .panel.open { visibility: visible; transform: none; transition: transform .45s var(--s-ease), visibility 0s; }
+  .salon .panel .top { display: flex; justify-content: space-between; align-items: center; padding: 20px 22px; background: var(--s-side); color: var(--s-side-ink); }
+  .salon .panel .top h2 { font-family: var(--s-display); font-size: 1.5rem; }
+  .salon .panel .top .icon-btn { background: var(--s-side-2); border-color: transparent; color: var(--s-side-ink); }
+  .salon .panel .body { flex: 1; overflow: auto; padding: 4px 22px 18px; }
+  .salon .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .salon fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .salon .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 22px; border-top: 1px solid var(--s-line); background: var(--s-soft); }
+  .salon .foot small { display: block; color: var(--s-mute); font-size: .78rem; }
+  .salon .foot strong { font-family: var(--s-display); font-size: 1.8rem; background: var(--s-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  @media (max-width: 900px) {
+    .salon .auth { grid-template-columns: 1fr; }
+    .salon .auth-art { padding: 32px; min-height: 260px; }
+    .salon .shell { grid-template-columns: 1fr; }
+    .salon .side { position: fixed; left: 0; top: 0; width: 290px; transform: translateX(-105%); transition: transform .4s var(--s-ease); z-index: 40; }
+    .salon .side.open { transform: none; box-shadow: var(--s-sh-lg); }
+    .salon .menu-btn { display: inline-grid; }
+    .salon .content { padding: 18px 14px 110px; }
+    .salon .topbar h1 { font-size: 1.5rem; }
+    .salon .fab { left: 50%; bottom: 16px; }
+    .salon .mgrid { grid-template-columns: 1fr; }
+    .salon .calwrap { max-height: 70dvh; }
+  }
+}
+@keyframes s-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes s-rise { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes s-pop { 0% { filter: blur(8px); transform: scale(.85); opacity: .3; } 60% { filter: blur(0); transform: scale(1.06); opacity: 1; } 100% { transform: none; } }
+@keyframes s-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-30px, 30px); } }
+@keyframes s-pulse { 0% { box-shadow: 0 0 0 0 oklch(0.65 0.15 155 / .6); } 100% { box-shadow: 0 0 0 10px oklch(0.65 0.15 155 / 0); } }
+@media (prefers-reduced-motion: reduce) { .salon *, .salon *::before, .salon *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
