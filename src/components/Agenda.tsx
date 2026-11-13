@@ -21,6 +21,8 @@ import {
 import { descargarReporte } from "@/lib/reporte";
 import { MiniCalendario } from "./MiniCalendario";
 import { Metricas } from "./Metricas";
+import { Ventas } from "./Ventas";
+import type { Venta } from "@/lib/ventas";
 
 type Form = {
   fecha: string;
@@ -48,10 +50,11 @@ const VACIO: Form = {
 };
 
 export function Agenda({ onLogout }: { onLogout: () => void }) {
-  const [vista, setVista] = useState<"agenda" | "metricas" | "config">("agenda")
+  const [vista, setVista] = useState<"agenda" | "metricas" | "ventas" | "config">("agenda")
   const [menu, setMenu] = useState(false);
   const [miembros, setMiembros] = useState<Miembro[]>([]);
   const [citas, setCitas] = useState<Cita[]>([]);
+  const [ventas, setVentas] = useState<Venta[]>([]);
   const [dia, setDia] = useState(hoy());
   const [modo, setModo] = useState<Modo>("dia");
   const [aviso, setAviso] = useState("");
@@ -66,7 +69,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
   const [nuevo, setNuevo] = useState("");
   const [confirmarAtendida, setConfirmarAtendida] = useState(false);
 
-  const { desde, hasta } = rango(dia, vista === "metricas" ? "semana" : modo);
+  const { desde, hasta } = rango(dia, vista === "metricas" || vista === "ventas" ? "semana" : modo);
   const colorDe = (id: string | null) => {
     const i = miembros.findIndex((m) => m.id === id);
     return i < 0 ? "var(--s-mute)" : `var(--staff-${i % 6})`;
@@ -89,6 +92,15 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     setAviso("");
     setCitas(data as Cita[]);
   }, [desde, hasta]);
+  const cargarVentas = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("ventas_producto")
+      .select("*")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha");
+    if (!error) setVentas((data as Venta[]) || []);
+  }, [desde, hasta]);
 
   useEffect(() => {
     cargarMiembros();
@@ -96,17 +108,21 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     cargarCitas();
   }, [cargarCitas]);
+  useEffect(() => {
+    cargarVentas();
+  }, [cargarVentas]);
   // Live updates: refetch whenever appointments or team change anywhere.
   useEffect(() => {
     const ch = supabase
       .channel("salon-" + Math.random().toString(36).slice(2))
       .on("postgres_changes", { event: "*", schema: "public", table: "citas" }, () => cargarCitas())
       .on("postgres_changes", { event: "*", schema: "public", table: "miembros" }, () => cargarMiembros())
+      .on("postgres_changes", { event: "*", schema: "public", table: "ventas_producto" }, () => cargarVentas())
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [cargarCitas, cargarMiembros]);
+  }, [cargarCitas, cargarMiembros, cargarVentas]);
   useEffect(() => {
     if (!flash) return;
     const t = setTimeout(() => setFlash(null), 800);
@@ -245,7 +261,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
 
   async function reporte() {
     try {
-      await descargarReporte({ citas, miembros, modo, desde, hasta });
+      await descargarReporte({ citas, ventas, miembros, modo, desde, hasta });
     } catch (err) {
       console.error(err);
       alert("Error al generar el reporte: " + (err as Error).message);
@@ -375,7 +391,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     setVista(v);
   };
   const titulo =
-    vista === "config" ? "Equipo" : etiqueta(desde, hasta, vista === "metricas" ? "semana" : modo);
+    vista === "config" ? "Equipo" : etiqueta(desde, hasta, vista === "metricas" || vista === "ventas" ? "semana" : modo);
 
   return (
     <>
@@ -390,6 +406,9 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
             </button>
             <button type="button" className={vista === "metricas" ? "on" : ""} onClick={() => ir("metricas")}>
               ◔ Métricas
+            </button>
+            <button type="button" className={vista === "ventas" ? "on" : ""} onClick={() => ir("ventas")}>
+              ⬢ Venta de producto
             </button>
             <button type="button" className={vista === "config" ? "on" : ""} onClick={() => ir("config")}>
               ✿ Equipo
@@ -435,16 +454,16 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
             </button>
             <h1>
               <span className="eyebrow">
-                {vista === "agenda" ? "Agenda de citas" : vista === "metricas" ? "Métricas semanales" : "Configuración"}
+                {vista === "agenda" ? "Agenda de citas" : vista === "metricas" ? "Métricas semanales" : vista === "ventas" ? "Venta de producto" : "Configuración"}
               </span>
               {titulo}
             </h1>
             {vista !== "config" && (
               <>
-                <button type="button" className="icon-btn" aria-label="Anterior" onClick={() => irA(mover(dia, -1, vista === "metricas" ? "semana" : modo))}>
+                <button type="button" className="icon-btn" aria-label="Anterior" onClick={() => irA(mover(dia, -1, vista === "metricas" || vista === "ventas" ? "semana" : modo))}>
                   ‹
                 </button>
-                <button type="button" className="icon-btn" aria-label="Siguiente" onClick={() => irA(mover(dia, 1, vista === "metricas" ? "semana" : modo))}>
+                <button type="button" className="icon-btn" aria-label="Siguiente" onClick={() => irA(mover(dia, 1, vista === "metricas" || vista === "ventas" ? "semana" : modo))}>
                   ›
                 </button>
               </>
@@ -459,7 +478,10 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
 
           {vista === "agenda" && <div className="calwrap">{calendario()}</div>}
           {vista === "metricas" && (
-            <Metricas citas={citas} miembros={miembros} dias={semanaDias(desde)} colorDe={colorDe} />
+            <Metricas citas={citas} ventas={ventas} miembros={miembros} dias={semanaDias(desde)} colorDe={colorDe} />
+          )}
+          {vista === "ventas" && (
+            <Ventas ventas={ventas} miembros={miembros} desde={desde} hasta={hasta} colorDe={colorDe} onCambiar={cargarVentas} />
           )}
           {vista === "config" && (
             <form className="card team" onSubmit={agregarMiembro}>

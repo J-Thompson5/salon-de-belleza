@@ -88,6 +88,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ventas_producto: {
+        Row: {
+          comision_pct: number
+          created_at: string
+          fecha: string
+          id: string
+          marca: string
+          producto: string
+          vendedor: string
+          valor: number
+        }
+        Insert: {
+          comision_pct?: number
+          created_at?: string
+          fecha?: string
+          id?: string
+          marca: string
+          producto: string
+          vendedor: string
+          valor?: number
+        }
+        Update: {
+          comision_pct?: number
+          created_at?: string
+          fecha?: string
+          id?: string
+          marca?: string
+          producto?: string
+          vendedor?: string
+          valor?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

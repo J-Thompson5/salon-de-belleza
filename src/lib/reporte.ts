@@ -1,5 +1,6 @@
 // Excel report generator, ported 1:1 from the original salon app (browser only).
 import { PAGO, type Cita, type Miembro, type Modo } from "./agenda";
+import { comision, resumenVentas, type Venta } from "./ventas";
 
 const AZUL = "FF2563EB";
 const TOTAL = "FFBFDBFE";
@@ -7,12 +8,13 @@ const SUB = "FFDBEAFE";
 
 export async function descargarReporte(opts: {
   citas: Cita[];
+  ventas?: Venta[];
   miembros: Miembro[];
   modo: Modo;
   desde: string;
   hasta: string;
 }) {
-  const { citas, miembros, modo, desde, hasta } = opts;
+  const { citas, ventas = [], miembros, modo, desde, hasta } = opts;
   const at = citas.filter((c) => c.estado === "atendida");
   if (!at.length) {
     alert("No hay citas atendidas en " + (modo === "semana" ? "esta semana." : "este día."));
@@ -142,8 +144,48 @@ export async function descargarReporte(opts: {
     if (i > 3) [6, 8, 9].forEach((n) => (r.getCell(n).numFmt = "#,##0.00"));
   });
 
-  const buf = await wb.xlsx.writeBuffer();
-  const a = document.createElement("a");
+  // Sheet 3: product sales (only when there are any)
+  if (ventas.length) {
+    const wV = wb.addWorksheet("Venta de Productos");
+    wV.columns = [{ width: 14 }, { width: 24 }, { width: 16 }, { width: 20 }, { width: 14 }, { width: 14 }, { width: 14 }];
+    wV.addRow([modo === "semana" ? "Venta de productos: " + desde + " al " + hasta : "Venta de productos: " + desde]).font = {
+      bold: true,
+      size: 14,
+    };
+    wV.addRow([]);
+    wV.addRow(["1. RESUMEN POR VENDEDOR"]).font = { bold: true, size: 12 };
+    pinta(wV.addRow(["Vendedor", "Ventas", "Valor vendido", "Comisión"]), AZUL, head);
+    resumenVentas(ventas, miembros).forEach((r) => {
+      wV.addRow([r.vendedor, r.ventas, r.valor, r.comision]);
+    });
+    const tVal = ventas.reduce((x, v) => x + +v.valor, 0);
+    const tCom = ventas.reduce((x, v) => x + comision(+v.valor, +v.comision_pct || 0), 0);
+    pinta(wV.addRow(["TOTAL GENERAL", ventas.length, tVal, tCom]), TOTAL, { bold: true });
+
+    wV.addRow([]);
+    wV.addRow(["2. DETALLE DE VENTAS"]).font = { bold: true, size: 12 };
+    pinta(wV.addRow(["Fecha", "Producto", "Marca", "Vendedor", "Valor", "% comisión", "Comisión"]), AZUL, head);
+    wV.views = [{ state: "frozen", ySplit: 8 }];
+    [...miembros.map((m) => m.nombre), null].forEach((nombre) => {
+      const l = ventas.filter((v) => (nombre ? v.vendedor === nombre : !miembros.some((m) => m.nombre === v.vendedor)));
+      if (!l.length) return;
+      let sv = 0,
+        sc = 0;
+      l.forEach((v) => {
+        const c = comision(+v.valor, +v.comision_pct || 0);
+        sv += +v.valor;
+        sc += c;
+        wV.addRow([v.fecha, v.producto, v.marca, v.vendedor, +v.valor, +v.comision_pct, c]);
+      });
+      pinta(wV.addRow(["Total " + nombre, "", "", "", sv, "", sc]), SUB, { bold: true });
+    });
+    pinta(wV.addRow(["TOTAL GENERAL", "", "", "", tVal, "", tCom]), TOTAL, { bold: true });
+    wV.eachRow((r, i) => {
+      if (i > 5) [5, 7].forEach((n) => (r.getCell(n).numFmt = "#,##0.00"));
+    });
+  }
+
+  const buf = await wb.xlsx.writeBuffer();  const a = document.createElement("a");
   a.href = URL.createObjectURL(
     new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
   );

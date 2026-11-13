@@ -1,5 +1,6 @@
 import { fmt, type Cita, type Miembro } from "@/lib/agenda";
 import { METODOS, calcularMetricas, etiquetaMetodo } from "@/lib/metricas";
+import { resumenVentas, type Venta } from "@/lib/ventas";
 
 const COLOR_METODO: Record<string, string> = {
   sinpe: "var(--staff-0)",
@@ -10,11 +11,13 @@ const COLOR_METODO: Record<string, string> = {
 
 export function Metricas({
   citas,
+  ventas,
   miembros,
   dias,
   colorDe,
 }: {
   citas: Cita[];
+  ventas: Venta[];
   miembros: Miembro[];
   dias: string[];
   colorDe: (id: string | null) => string;
@@ -78,6 +81,14 @@ export function Metricas({
 
   const pctRows = m.porcentajes.map((p) => metodosCols.map((k) => p.gananciaPorMetodo[idx(k)] ?? 0));
   const pctTot = sumCols(pctRows);
+
+  const rv = resumenVentas(ventas, miembros);
+  const totalVenta = rv.reduce((x, r) => x + r.valor, 0);
+  const totalComVenta = rv.reduce((x, r) => x + r.comision, 0);
+  const colorVendedor = (nombre: string) => {
+    const i = miembros.findIndex((x) => x.nombre === nombre);
+    return i < 0 ? "var(--s-mute)" : `var(--staff-${i % 6})`;
+  };
 
   return (
     <>
@@ -191,6 +202,50 @@ export function Metricas({
           </div>
         ) : (
           <p className="empty">Aún no hay citas atendidas esta semana.</p>
+        )}
+      </div>
+      <div className="card" style={{ animationDelay: "420ms" }}>
+        <h3>Venta de productos</h3>
+        {rv.length ? (
+          <div className="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vendedor</th>
+                  <th>Ventas</th>
+                  <th>Valor vendido</th>
+                  <th>Comisión</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rv.map((r) => (
+                  <tr key={r.vendedor}>
+                    <td>
+                      <span className="who">
+                        <span className="sw" style={{ ["--c" as string]: colorVendedor(r.vendedor) }} />
+                        {r.vendedor}
+                      </span>
+                    </td>
+                    <td>{r.ventas}</td>
+                    <td>{fmt(r.valor)}</td>
+                    <td>
+                      <b>{fmt(r.comision)}</b>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total general</td>
+                  <td>{ventas.length}</td>
+                  <td>{fmt(totalVenta)}</td>
+                  <td>{fmt(totalComVenta)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <p className="empty">Aún no hay ventas de producto esta semana.</p>
         )}
       </div>
     </>
