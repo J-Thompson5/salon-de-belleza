@@ -62,12 +62,12 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
   const [abierto, setAbierto] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [soloPago, setSoloPago] = useState(false);
-  const [puedeBorrar, setPuedeBorrar] = useState(false);
   const [f, setF] = useState<Form>(VACIO);
   const [pmsg, setPmsg] = useState("");
   const [cmsg, setCmsg] = useState("");
   const [nuevo, setNuevo] = useState("");
   const [confirmarAtendida, setConfirmarAtendida] = useState(false);
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false);
 
   const { desde, hasta } = rango(dia, vista === "metricas" || vista === "ventas" ? "semana" : modo);
   const colorDe = (id: string | null) => {
@@ -131,18 +131,20 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
 
   const cerrar = () => {
     setConfirmarAtendida(false);
+    setConfirmarBorrado(false);
     setAbierto(false);
   };
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (confirmarAtendida) setConfirmarAtendida(false);
+        else if (confirmarBorrado) setConfirmarBorrado(false);
         else cerrar();
       }
     };
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
-  }, [confirmarAtendida]);
+  }, [confirmarAtendida, confirmarBorrado]);
   useEffect(() => {
     document.body.style.overflow = abierto ? "hidden" : "";
   }, [abierto]);
@@ -160,7 +162,6 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     setF({ ...VACIO, fecha: fecha || dia, hora, miembro: miembroId });
     setEditId(null);
     setSoloPago(false);
-    setPuedeBorrar(false);
     setPmsg("");
     setAbierto(true);
   }
@@ -178,7 +179,6 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
       estado: c.estado || "pendiente",
     });
     setEditId(c.id);
-    setPuedeBorrar(c.estado !== "atendida");
     setSoloPago(c.estado === "atendida");
     setPmsg("");
     setAbierto(true);
@@ -219,13 +219,6 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
   async function guardar(e: FormEvent) {
     e.preventDefault();
     const est = f.estado;
-    if (est === "borrar") {
-      if (!confirm("¿Borrar esta cita?")) return;
-      const { error } = await supabase.from("citas").delete().eq("id", editId!);
-      if (error) return setPmsg("No se pudo borrar: " + error.message);
-      cerrar();
-      return cargarCitas();
-    }
     if (soloPago) {
       const { error } = await supabase.from("citas").update({ metodo_pago: f.pago || null }).eq("id", editId!);
       if (error) return setPmsg("No se pudo guardar: " + error.message);
@@ -238,6 +231,17 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
       return;
     }
     await ejecutarGuardado(est);
+  }
+
+  async function ejecutarBorrado() {
+    const { error } = await supabase.from("citas").delete().eq("id", editId!);
+    if (error) {
+      setConfirmarBorrado(false);
+      return setPmsg("No se pudo borrar: " + error.message);
+    }
+    setConfirmarBorrado(false);
+    cerrar();
+    cargarCitas();
   }
 
   async function agregarMiembro(e: FormEvent) {
@@ -383,7 +387,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     );
   }
 
-  const guardarTxt = f.estado === "borrar" ? "Borrar cita" : soloPago ? "Guardar método de pago" : "Guardar cita";
+  const guardarTxt = soloPago ? "Guardar método de pago" : "Guardar cita";
 
   const ir = (v: typeof vista) => {
     cerrar();
@@ -565,7 +569,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
                 <input id="valor" inputMode="decimal" autoComplete="off" required disabled={soloPago} value={f.valor} onChange={(e) => set("valor", limpiarDecimal(e.target.value))} />
               </div>
               <div>
-                <label htmlFor="desc">Porcentaje de ganancia (0 a 100 %)</label>
+                <label htmlFor="desc">Porcentaje de ganancia (%)</label>
                 <input id="desc" inputMode="numeric" autoComplete="off" disabled={soloPago} value={f.desc} onChange={(e) => set("desc", limpiarPorcentaje(e.target.value))} />
               </div>
             </div>
@@ -583,7 +587,6 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
               <option value="pendiente">Pendiente</option>
               <option value="atendida">Atendida</option>
               <option value="cancelada">Cancelada</option>
-              {puedeBorrar && <option value="borrar">Borrar</option>}
             </select>
           </fieldset>
           <p className="msg" role="alert">
@@ -595,9 +598,51 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
             <small>Ganancia</small>
             <strong>{total}</strong>
           </div>
-          <button className="btn btn-primary">{guardarTxt}</button>
+          <div style={{ display: "flex", gap: 10 }}>
+            {editId && (
+              <button type="button" className="btn del" onClick={() => setConfirmarBorrado(true)}>
+                Eliminar cita
+              </button>
+            )}
+            <button className="btn btn-primary">{guardarTxt}</button>
+          </div>
         </div>
       </form>
+
+      {confirmarBorrado && (
+        <div className="modal-overlay" onClick={() => setConfirmarBorrado(false)} role="dialog" aria-modal="true" aria-labelledby="modal-borrado-title">
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-hd">
+              <div className="modal-icon bad" aria-hidden="true">🗑</div>
+              <h3 id="modal-borrado-title" className="modal-title">¿Eliminar esta cita?</h3>
+            </div>
+            <div className="modal-body">
+              <p>
+                Estás a punto de eliminar la cita de {f.clienta ? <strong>{f.clienta}</strong> : "esta clienta"} ({f.servicio}) del {f.fecha} a las {f.hora}.
+              </p>
+              <div className="modal-note">
+                <strong>Importante:</strong> Esta acción es permanente. La cita se eliminará sin importar su estado actual y no podrás recuperarla después.
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setConfirmarBorrado(false)}
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                className="btn del"
+                onClick={ejecutarBorrado}
+              >
+                Sí, eliminar cita
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmarAtendida && (
         <div className="modal-overlay" onClick={() => setConfirmarAtendida(false)} role="dialog" aria-modal="true" aria-labelledby="modal-atendida-title">
@@ -611,7 +656,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
                 Estás a punto de completar la cita de {f.clienta ? <strong>{f.clienta}</strong> : "esta clienta"} ({f.servicio}).
               </p>
               <div className="modal-note">
-                <strong>Importante:</strong> Una vez marcada como atendida solo podrás actualizar el método de pago; no podrás modificar otros datos ni eliminar la cita.
+                <strong>Importante:</strong> Una vez marcada como atendida solo podrás actualizar el método de pago; no podrás modificar otros datos. Si necesitas eliminarla, podrás hacerlo con el botón «Eliminar cita».
               </div>
             </div>
             <div className="modal-actions">

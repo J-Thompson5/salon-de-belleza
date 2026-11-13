@@ -12,7 +12,6 @@ export function Ventas({
   miembros,
   desde,
   hasta,
-  colorDe,
   onCambiar,
 }: {
   ventas: Venta[];
@@ -153,12 +152,12 @@ export function Ventas({
 
       {resumen.length > 0 && (
         <div className="card" style={{ animationDelay: "120ms" }}>
-          <h3>Ventas por vendedor</h3>
+          <h3>Ventas por miembro</h3>
           <div className="tbl-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Vendedor</th>
+                  <th>Miembro</th>
                   <th>Ventas</th>
                   <th>Valor vendido</th>
                   <th>Comisión</th>
@@ -169,7 +168,7 @@ export function Ventas({
                   <tr key={r.vendedor}>
                     <td>
                       <span className="who">
-                        <span className="sw" style={{ ["--c" as string]: colorDe(r.vendedor) }} />
+                        <span className="sw" style={{ ["--c" as string]: color(r.vendedor) }} />
                         {r.vendedor}
                       </span>
                     </td>
@@ -200,11 +199,12 @@ export function Ventas({
           <ul className="team-list">
             {ordenadas.map((v) => (
               <li key={v.id}>
-                <span className="sw" style={{ ["--c" as string]: color(v.vendedor) }} />
-                <span>
-                  {v.producto} <small style={{ color: "var(--s-mute)" }}>· {v.marca} · {v.vendedor} · {v.fecha}</small>
+                <span className="who">
+                  <span className="sw" style={{ ["--c" as string]: color(v.vendedor) }} />
+                  {v.vendedor}
                 </span>
-                <span style={{ fontWeight: 600 }}>{fmt(+v.valor)}</span>
+                <small className="venta-producto">{v.producto} · {v.marca} · {v.fecha}</small>
+                <span className="venta-valor">{fmt(+v.valor)}</span>
                 <button type="button" className="btn del" onClick={() => setBorrarVenta(v)}>
                   Eliminar
                 </button>

@@ -343,6 +343,8 @@
   .salon .team-list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
   .salon .team-list li { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--s-line); border-radius: 16px; }
   .salon .team-list li span { margin-right: auto; font-weight: 500; }
+  .salon .team-list li .venta-producto { margin: 0 auto; color: var(--s-mute); }
+  .salon .team-list li .venta-valor { margin: 0 0 0 auto; font-weight: 600; }
   .salon .inline-form { display: flex; gap: 10px; align-items: end; }
   .salon .del { color: var(--s-bad); border-color: var(--s-badbg); }
   .salon .del:hover { background: var(--s-badbg); color: var(--s-bad); border-color: var(--s-bad); }
@@ -356,7 +358,8 @@
   .salon .panel .top h2 { font-family: var(--s-display); font-size: 1.5rem; }
   .salon .panel .top .icon-btn { background: var(--s-side-2); border-color: transparent; color: var(--s-side-ink); }
   .salon .panel .body { flex: 1; overflow: auto; padding: 4px 22px 18px; }
-  .salon .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .salon .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  .salon .row label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .salon fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
   .salon .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 22px; border-top: 1px solid var(--s-line); background: var(--s-soft); }
   .salon .foot small { display: block; color: var(--s-mute); font-size: .78rem; }
@@ -367,6 +370,7 @@
   .salon .modal-card { width: min(440px, 100%); background: var(--s-surface); border-radius: 24px; box-shadow: var(--s-sh-lg); border: 1px solid var(--s-line); overflow: hidden; animation: s-pop .3s var(--s-ease); }
   .salon .modal-hd { display: flex; align-items: center; gap: 14px; padding: 22px 24px 14px; }
   .salon .modal-icon { width: 44px; height: 44px; border-radius: 14px; background: var(--s-okbg); color: var(--s-ok); display: grid; place-items: center; font-size: 1.3rem; flex-shrink: 0; }
+  .salon .modal-icon.bad { background: var(--s-badbg); color: var(--s-bad); }
   .salon .modal-title { font-family: var(--s-display); font-size: 1.35rem; margin: 0; line-height: 1.2; }
   .salon .modal-body { padding: 0 24px 20px; color: var(--s-mute); font-size: .92rem; line-height: 1.5; display: grid; gap: 12px; }
   .salon .modal-body strong { color: var(--s-ink); }
