@@ -19,6 +19,8 @@ import {
   type Modo,
 } from "@/lib/agenda";
 import { descargarReporte } from "@/lib/reporte";
+import { useTema } from "@/hooks/use-tema";
+import { TemaPicker } from "./TemaPicker";
 import { MiniCalendario } from "./MiniCalendario";
 import { Metricas } from "./Metricas";
 import { Ventas } from "./Ventas";
@@ -50,6 +52,7 @@ const VACIO: Form = {
 };
 
 export function Agenda({ onLogout }: { onLogout: () => void }) {
+  const [tema, setTema] = useTema();
   const [vista, setVista] = useState<"agenda" | "metricas" | "ventas" | "config">("agenda")
   const [menu, setMenu] = useState(false);
   const [miembros, setMiembros] = useState<Miembro[]>([]);
@@ -212,8 +215,10 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     setConfirmarAtendida(false);
     cerrar();
     if (est !== "pendiente") setFlash(editId);
+    // Refrescar siempre: setDia puede no cambiar el rango (p. ej. otro día de la
+    // misma semana en la vista semanal) y el useEffect no se volvería a disparar.
+    cargarCitas();
     if (row.fecha !== dia) setDia(row.fecha);
-    else cargarCitas();
   }
 
   async function guardar(e: FormEvent) {
@@ -395,7 +400,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
     setVista(v);
   };
   const titulo =
-    vista === "config" ? "Equipo" : etiqueta(desde, hasta, vista === "metricas" || vista === "ventas" ? "semana" : modo);
+    vista === "config" ? "Configuración" : etiqueta(desde, hasta, vista === "metricas" || vista === "ventas" ? "semana" : modo);
 
   return (
     <>
@@ -415,7 +420,7 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
               ⬢ Venta de producto
             </button>
             <button type="button" className={vista === "config" ? "on" : ""} onClick={() => ir("config")}>
-              ✿ Equipo
+              ⚙ Configuración
             </button>
           </nav>
           {vista !== "config" && (
@@ -488,7 +493,9 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
             <Ventas ventas={ventas} miembros={miembros} desde={desde} hasta={hasta} colorDe={colorDe} onCambiar={cargarVentas} />
           )}
           {vista === "config" && (
-            <form className="card team" onSubmit={agregarMiembro}>
+            <>
+              <TemaPicker tema={tema} setTema={setTema} />
+              <form className="card team" onSubmit={agregarMiembro}>
               <h3>Miembros del equipo</h3>
               <div className="inline-form">
                 <div style={{ flex: 1 }}>
@@ -511,7 +518,8 @@ export function Agenda({ onLogout }: { onLogout: () => void }) {
                   </li>
                 ))}
               </ul>
-            </form>
+              </form>
+            </>
           )}
         </section>
       </div>

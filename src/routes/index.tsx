@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useTema } from "@/hooks/use-tema";
 import { Agenda } from "@/components/Agenda";
 
 export const Route = createFileRoute("/")({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  useTema();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
 
   useEffect(() => {
